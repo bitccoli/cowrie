@@ -1,0 +1,42 @@
+[package]
+name = "cowrie-cashu-mintd"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "cowried"
+path = "src/main.rs"
+
+[[bin]]
+name = "cowrie-cli"
+path = "src/bin/cowrie-cli.rs"
+
+[[bin]]
+name = "cowrie-bench"
+path = "src/bin/cowrie-bench.rs"
+
+[dependencies]
+anyhow.workspace = true
+axum.workspace = true
+base64.workspace = true
+blind-seal-crypto.workspace = true
+blind-seal-sdk.workspace = true
+blind-seal-server.workspace = true
+clap.workspace = true
+hex.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+serde_cbor.workspace = true
+serde_json.workspace = true
+sha1.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

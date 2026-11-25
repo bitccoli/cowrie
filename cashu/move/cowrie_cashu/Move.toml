@@ -1,0 +1,9 @@
+[package]
+name = "cowrie_cashu"
+edition = "2024.beta"
+
+[dependencies]
+blind_seal = { local = "../../../blind-seal/move/blind_seal" }
+
+[addresses]
+cowrie_cashu = "0x0"
