@@ -1,0 +1,21 @@
+[package]
+name = "blind-seal-crypto"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+blstrs.workspace = true
+ed25519-dalek.workspace = true
+ff.workspace = true
+group.workspace = true
+hex.workspace = true
+k256.workspace = true
+pairing.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+sha2.workspace = true
+thiserror.workspace = true

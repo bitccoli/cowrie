@@ -1,0 +1,14 @@
+# Rust / Cargo build outputs
+/target/
+/blind-seal/wasm/cowrie-bls-wasm/target/
+
+# Sui Move build artifacts
+**/build/
+
+# Runtime local devnet & wallet state
+/cowrie-data/
+/devnet-keys/
+*wallet*.json
+*.cbor
+*.cbor.tmp
+.DS_Store

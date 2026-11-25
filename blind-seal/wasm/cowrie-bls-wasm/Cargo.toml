@@ -1,0 +1,21 @@
+[package]
+name = "cowrie-bls-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+bls12_381 = { version = "0.9.0", default-features = false, features = ["alloc", "experimental", "pairings"] }
+sha2 = { version = "0.10.9", default-features = false }
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

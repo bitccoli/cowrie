@@ -1,0 +1,6 @@
+[package]
+name = "blind_seal"
+edition = "2024.beta"
+
+[addresses]
+blind_seal = "0x0"

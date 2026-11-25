@@ -1,0 +1,28 @@
+[package]
+name = "blind-seal-sdk"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+bcs.workspace = true
+bech32.workspace = true
+blake2.workspace = true
+blind-seal-crypto.workspace = true
+bs58.workspace = true
+ed25519-dalek.workspace = true
+hex.workspace = true
+rand.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_bytes.workspace = true
+serde_cbor.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+rand_chacha.workspace = true

@@ -1,0 +1,55 @@
+[workspace]
+resolver = "2"
+members = [
+    "blind-seal/crates/blind-seal-crypto",
+    "blind-seal/crates/blind-seal-sdk",
+    "blind-seal/crates/blind-seal-server",
+    "cashu/crates/cowrie-cashu-mintd",
+    "fedimint/crates/cowrie-fedimint-shim",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+anyhow = "1.0.102"
+axum = "0.8.9"
+base64 = "0.22.1"
+bcs = "0.1.6"
+bech32 = "0.11.1"
+blake2 = "0.10.6"
+blstrs = "0.7.1"
+bs58 = "0.5.1"
+clap = { version = "4.5.21", features = ["derive"] }
+ed25519-dalek = { version = "2.2.0", features = ["rand_core", "serde"] }
+ff = "0.13.1"
+futures-util = "0.3.34"
+group = "0.13.0"
+hex = "0.4.3"
+http = "1.5.0"
+http-body-util = "0.1.5"
+hyper = { version = "1.12.0", features = ["server", "client", "http1"] }
+hyper-util = { version = "0.1.21", features = ["tokio"] }
+k256 = { version = "0.13.4", features = ["schnorr", "ecdsa", "sha256"] }
+pairing = "0.23.0"
+rand = "0.8.5"
+rand_chacha = "0.3.1"
+reqwest = { version = "0.12.28", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_bytes = "0.11.19"
+serde_cbor = "0.11.2"
+serde_json = "1.0.149"
+sha1 = "0.10.6"
+sha2 = "0.10.9"
+thiserror = "2.0.18"
+tokio = { version = "1.48.0", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+
+blind-seal-crypto = { path = "blind-seal/crates/blind-seal-crypto" }
+blind-seal-sdk = { path = "blind-seal/crates/blind-seal-sdk" }
+blind-seal-server = { path = "blind-seal/crates/blind-seal-server" }
+cowrie-cashu-mintd = { path = "cashu/crates/cowrie-cashu-mintd" }
+cowrie-fedimint-shim = { path = "fedimint/crates/cowrie-fedimint-shim" }
