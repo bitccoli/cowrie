@@ -1,0 +1,78 @@
+services:
+  guardian-0:
+    build: .
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --sui-rpc http://sui-localnet:9000
+      --public-keyset /keys/sat_public.json
+      --secret-share /keys/sat_guardian_0.json
+    volumes:
+      - ./devnet-keys:/keys:ro
+
+  guardian-1:
+    build: .
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --sui-rpc http://sui-localnet:9000
+      --public-keyset /keys/sat_public.json
+      --secret-share /keys/sat_guardian_1.json
+    volumes:
+      - ./devnet-keys:/keys:ro
+
+  guardian-2:
+    build: .
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --sui-rpc http://sui-localnet:9000
+      --public-keyset /keys/sat_public.json
+      --secret-share /keys/sat_guardian_2.json
+    volumes:
+      - ./devnet-keys:/keys:ro
+
+  guardian-3:
+    build: .
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --sui-rpc http://sui-localnet:9000
+      --public-keyset /keys/sat_public.json
+      --secret-share /keys/sat_guardian_3.json
+    volumes:
+      - ./devnet-keys:/keys:ro
+
+  guardian-4:
+    build: .
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --sui-rpc http://sui-localnet:9000
+      --public-keyset /keys/sat_public.json
+      --secret-share /keys/sat_guardian_4.json
+    volumes:
+      - ./devnet-keys:/keys:ro
+
+  cowried:
+    build: .
+    ports:
+      - "3338:3338"
+    command: >
+      cowried
+      --bind 0.0.0.0:3338
+      --threshold 4
+      --peers 5
+      --data-dir /data
+      --seal-urls http://guardian-0:3100,http://guardian-1:3100,http://guardian-2:3100,http://guardian-3:3100,http://guardian-4:3100
+    volumes:
+      - cowrie-data:/data
+    depends_on:
+      - guardian-0
+      - guardian-1
+      - guardian-2
+      - guardian-3
+      - guardian-4
+
+volumes:
+  cowrie-data:
