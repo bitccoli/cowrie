@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cowrie Playground</title>
+<link rel="icon" href="/assets/site/cowrie.png"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,400&family=Literata:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --night: #1F2A44; --deep: #141C33; --card: #19233B; --line: #2E3C5C; --bay: #2F6669;
+    --parch: #F2E6CF; --muted: #AFA894; --lamp: #E9B44C; --red: #C8553D; --wood: #7A4E2F; --teal: #5FB3A8;
+    --display: "Fraunces", Georgia, serif; --body: "Literata", Georgia, serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--deep); color: var(--parch); font: 15px/1.55 var(--body); }
+  a { color: var(--lamp); }
+  code, .mono { font-family: var(--mono); font-size: .92em; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 16px; }
+  nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--parch); font: 800 22px var(--display); }
+  .brand img { width: 34px; height: auto; }
+  .links { display: flex; gap: 16px; align-items: center; font-size: 14px; flex-wrap: wrap; }
+  .links a { text-decoration: none; color: var(--muted); }
+  .links a:hover { color: var(--parch); }
+  .badge { font: 600 12px var(--mono); color: var(--lamp); border: 1px solid rgba(233,180,76,.45); background: rgba(233,180,76,.08); padding: 4px 10px; border-radius: 999px; }
+  .hero { background: linear-gradient(180deg, rgba(20,28,51,.25), rgba(20,28,51,.95)), url('/assets/site/sky-night.jpg') center/cover; border-bottom: 1px solid var(--line); }
+  .hero .wrap { padding-top: 26px; padding-bottom: 26px; }
+  h1 { font: 800 clamp(28px, 4vw, 40px)/1.1 var(--display); margin: 0 0 8px; }
+  .lead { color: var(--muted); max-width: 720px; margin: 0; font-size: 16px; }
+  .section { padding: 22px 0 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .card h2 { font: 600 20px var(--display); margin: 0 0 4px; }
+  .card .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .peers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 860px) { .peers { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .peers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .peer { background: var(--deep); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 10px; text-align: center; transition: border-color .2s; }
+  .peer .lh { height: 120px; width: auto; display: block; margin: 0 auto 6px; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+  .peer.healthy { border-color: rgba(233,180,76,.5); }
+  .peer.healthy .lh { filter: drop-shadow(0 0 16px rgba(233,180,76,.45)); }
+  .peer.offline { opacity: .7; border-style: dashed; }
+  .peer.byzantine_forge { border-color: var(--red); background: rgba(200,85,61,.08); }
+  .peer.byzantine_forge .lh { filter: drop-shadow(0 0 16px rgba(200,85,61,.55)); }
+  .peer-title { font: 600 16px var(--display); }
+  .peer-state { font: 600 12px var(--mono); color: var(--lamp); margin: 2px 0; }
+  .peer.offline .peer-state { color: var(--muted); }
+  .peer.byzantine_forge .peer-state { color: var(--red); }
+  .peer-meta { font: 12px var(--mono); color: var(--muted); margin-bottom: 8px; }
+  .btn-group { display: flex; flex-direction: column; gap: 4px; }
+  .quorum { margin-top: 14px; padding: 10px 14px; border-radius: 10px; font: 600 14px var(--mono); }
+  .quorum.ok { background: rgba(95,179,168,.12); color: var(--teal); border: 1px solid rgba(95,179,168,.4); }
+  .quorum.halt { background: rgba(233,180,76,.1); color: var(--lamp); border: 1px solid rgba(233,180,76,.45); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .stat-row { display: flex; justify-content: space-between; gap: 12px; margin: 6px 0; font-size: 14px; }
+  .stat-val { font: 600 14px var(--mono); color: var(--lamp); white-space: nowrap; }
+  .vault { display: grid; grid-template-columns: 150px 1fr; gap: 16px; align-items: center; }
+  .vault img { width: 100%; height: auto; }
+  @media (max-width: 520px) { .vault { grid-template-columns: 1fr; } .vault img { max-width: 180px; } }
+  .rules { list-style: none; padding: 0; margin: 10px 0 0; font-size: 14px; }
+  .rules li { padding: 4px 0; border-top: 1px dashed var(--line); }
+  .rules b { font-family: var(--display); }
+  button { cursor: pointer; border: 1px solid var(--line); background: #222E4A; color: var(--parch); padding: 8px 12px; border-radius: 9px; font: 600 13px var(--body); transition: .15s; }
+  button:hover { border-color: var(--lamp); }
+  button.primary { background: var(--lamp); color: #2B2118; border-color: var(--lamp); }
+  button.teal { background: var(--bay); border-color: var(--teal); }
+  button.sm { padding: 4px 6px; font-size: 12px; }
+  button.on-lit { background: rgba(233,180,76,.2); border-color: var(--lamp); color: var(--lamp); }
+  button.on-dark { background: rgba(175,168,148,.18); border-color: var(--muted); color: var(--parch); }
+  button.on-false { background: rgba(200,85,61,.22); border-color: var(--red); color: #F0A08F; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  pre { background: #0E1426; border: 1px solid var(--line); border-radius: 9px; padding: 10px; font: 12px/1.5 var(--mono); color: #CFE3DE; overflow-x: auto; white-space: pre-wrap; word-break: break-all; max-height: 120px; margin: 10px 0 0; }
+  #log { max-height: 220px; }
+  footer { color: var(--muted); font-size: 13px; padding: 24px 0 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="brand" href="/"><img src="/assets/site/cowrie.png" alt=""/>Cowrie</a>
+    <div class="links">
+      <a href="/">Home</a>
+      <a href="https://github.com/bitccoli/cowrie">GitHub</a>
+      <span class="badge" id="ks-badge">Loading WASM &amp; keyset…</span>
+    </div>
+  </nav>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <h1>The playground</h1>
+    <p class="lead">Five guardians keep watch over the bay; any four can sign. Make one show a false light or go dark and watch the mint respond. Your wallet lives in this browser: secrets and blinding factors never leave it.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="section">
+    <div class="card">
+      <h2>Guardians</h2>
+      <p class="sub">Click <b>False light</b> to make a guardian forge its signature shares (pairing checks catch it), or <b>Dark</b> to take it offline. With two faulty, issuance halts safely.</p>
+      <div class="peers" id="peers-grid"></div>
+      <div class="quorum ok" id="quorum">Checking the bay…</div>
+    </div>
+  </section>
+
+  <section class="section grid">
+    <div class="card">
+      <h2>Your wallet</h2>
+      <p class="sub">Non-custodial: blinding and offline pairing checks run in WASM, notes are stored in <code>localStorage</code>.</p>
+      <div class="stat-row"><span>Balance</span><span class="stat-val" id="w-bal">0 sat</span></div>
+      <div class="stat-row"><span>Unspent notes</span><span class="stat-val" id="w-cnt">0</span></div>
+      <div class="actions">
+        <button class="primary" onclick="mintInBrowser(16)">Mint 16 × 1 sat</button>
+        <button onclick="mintInBrowser(64)">Mint 64 sat</button>
+        <button onclick="swapInBrowser()">Swap (NUT-03)</button>
+        <button onclick="checkStateInBrowser()">Check state (NUT-07)</button>
+        <button onclick="wipeAndRestoreInBrowser()">Wipe &amp; restore seed (NUT-13)</button>
+      </div>
+      <pre id="v4-box">Mint some sats to see your notes as a compact cashuB… token (NUT-00 V4).</pre>
+    </div>
+
+    <div class="card">
+      <h2>The vault</h2>
+      <div class="vault">
+        <img src="/assets/site/vault.png" alt="Stone harbor vault"/>
+        <div>
+          <div class="stat-row"><span>Reserve</span><span class="stat-val" id="m-res">0 sat</span></div>
+          <ul class="rules">
+            <li><b>Ledger</b> · every spent note recorded once</li>
+            <li><b>Reserves</b> · held in plain sight</li>
+            <li><b>Pays any valid note</b> · no one can refuse</li>
+            <li><b>Hourly limit</b> · caps what can leave</li>
+          </ul>
+        </div>
+      </div>
+      <p class="sub" style="margin:12px 0 0">Runs on the embedded engine here; point <code>cowried</code> at Sui (<code>--sui-rpc</code>) to use the <code>MintVault&lt;Asset&gt;</code> Move contract.</p>
+    </div>
+
+    <div class="card">
+      <h2>Stream sats over HTTP-402</h2>
+      <p class="sub">Each second the wallet pays 1 sat in an <code>X-Cashu</code> header (NUT-24). The server verifies it offline, with no DLEQ proof needed.</p>
+      <div class="stat-row"><span>Creator buffer</span><span class="stat-val" id="v-buf">0 sat (0 notes)</span></div>
+      <div class="stat-row"><span>Settled to creator</span><span class="stat-val" id="v-set">0 sat</span></div>
+      <div class="actions">
+        <button class="teal" id="stream-btn" onclick="toggleStream()">Stream 1 sat/s</button>
+        <button onclick="tick402()">Send one</button>
+        <button class="primary" onclick="batchSettle()">Settle all in one batch</button>
+      </div>
+      <pre id="v4v-box">The browser builds a binary cashuB… X-Cashu header and sends it to /demo/v4v/protected_resource.</pre>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="card">
+      <h2>Protocol log</h2>
+      <pre id="log">Loading cowrie_bls.wasm…</pre>
+    </div>
+  </section>
+</main>
+
+<div class="wrap"><footer>Cowrie · signed by a federation, kept by a contract · unaudited hackathon code · <a href="/">home</a></footer></div>
+
+<script>
+const STORAGE_KEY = 'cowrie_noncustodial_proofs_v1';
+const SEED_KEY = 'cowrie_nut13_master_seed_v1';
+const CTR_KEY = 'cowrie_nut13_counter_v1';
+let wasm = null;
+let satKeyset = null; // { id, keys: { "1": hex96, ... } }
+let dstBytes = null;
+let streamTimer = null;
+let nut17Socket = null;
+
+function getMasterSeed() {
+  let s = localStorage.getItem(SEED_KEY);
+  if (!s) {
+    s = 'cowrie-web-seed-' + toHex(crypto.getRandomValues(new Uint8Array(16)));
+    localStorage.setItem(SEED_KEY, s);
+  }
+  return s;
+}
+function nextCounter() {
+  const c = parseInt(localStorage.getItem(CTR_KEY) || '0', 10);
+  localStorage.setItem(CTR_KEY, String(c + 1));
+  return c;
+}
+async function deriveNut13Browser(counter) {
+  const seed = getMasterSeed();
+  const enc = new TextEncoder();
+  const sBuf = await crypto.subtle.digest('SHA-256', enc.encode(`NUT13_COWRIE_SECRET_V1|${seed}|${satKeyset.id}|${counter}`));
+  const rBuf = await crypto.subtle.digest('SHA-256', enc.encode(`NUT13_COWRIE_BLIND_SEED_V1|${seed}|${satKeyset.id}|${counter}`));
+  const secret = toHex(new Uint8Array(sBuf));
+  const seed32 = new Uint8Array(rBuf);
+  return { secret, seed32, B_: wasmBlind(secret, seed32) };
+}
+
+function connectNut17WebSocket() {
+  try {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    nut17Socket = new WebSocket(`${proto}//${location.host}/v1/ws`);
+    nut17Socket.onopen = () => {
+      nut17Socket.send(JSON.stringify({ jsonrpc:'2.0', id:1, method:'subscribe', params:{ kind:'bolt11_mint_quote', subId:'ws_mint', filters:['*'] } }));
+      nut17Socket.send(JSON.stringify({ jsonrpc:'2.0', id:2, method:'subscribe', params:{ kind:'bolt11_melt_quote', subId:'ws_melt', filters:['*'] } }));
+      nut17Socket.send(JSON.stringify({ jsonrpc:'2.0', id:3, method:'subscribe', params:{ kind:'proof_state', subId:'ws_proof', filters:['*'] } }));
+      log('Connected to NUT-17 WebSocket (/v1/ws) for real-time quote & proof_state push events');
+    };
+    nut17Socket.onmessage = ev => {
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg.method === 'subscribe' && msg.params && msg.params.payload) {
+          const p = msg.params.payload;
+          if (p.Y) log(`NUT-17 Push [proof_state]: Y=${p.Y.slice(0,16)}... -> ${p.state}`);
+          else if (p.quote) log(`NUT-17 Push [${msg.params.subId}]: quote=${p.quote.slice(0,12)}... -> ${p.state}`);
+        }
+      } catch {}
+    };
+  } catch {}
+}
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const ts = new Date().toISOString().slice(11, 23);
+  el.textContent = `[${ts}] ${msg}\n` + el.textContent;
+}
+
+const toHex = u8 => Array.from(u8).map(b => b.toString(16).padStart(2, '0')).join('');
+const fromHex = hex => new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+const b64url = u8 => btoa(String.fromCharCode(...u8)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+function loadProofs() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function saveProofs(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+// Minimal RFC 8949 CBOR encoder specifically for official NUT-00 V4 binary `cashuB...` tokens:
+// `{ "m": str, "u": str, "t": [{ "i": bytes, "p": [{ "a": uint, "s": str, "c": bytes }] }] }`
+function cborHead(major, len) {
+  const mt = major << 5;
+  if (len < 24) return [mt | len];
+  if (len < 256) return [mt | 24, len];
+  if (len < 65536) return [mt | 25, (len >> 8) & 0xff, len & 0xff];
+  return [mt | 26, (len >>> 24) & 0xff, (len >>> 16) & 0xff, (len >>> 8) & 0xff, len & 0xff];
+}
+const cborUint = n => cborHead(0, n);
+const cborBytes = u8 => [...cborHead(2, u8.length), ...u8];
+const cborStr = s => { const b = new TextEncoder().encode(s); return [...cborHead(3, b.length), ...b]; };
+function encodeNut00V4Token(mintUrl, unit, proofs) {
+  const byId = {};
+  for (const p of proofs) { (byId[p.id] = byId[p.id] || []).push(p); }
+  const groups = Object.entries(byId);
+  const out = [...cborHead(5, 3), ...cborStr('m'), ...cborStr(mintUrl), ...cborStr('u'), ...cborStr(unit), ...cborStr('t'), ...cborHead(4, groups.length)];
+  for (const [idHex, plist] of groups) {
+    out.push(...cborHead(5, 2), ...cborStr('i'), ...cborBytes(fromHex(idHex)), ...cborStr('p'), ...cborHead(4, plist.length));
+    for (const p of plist) {
+      out.push(...cborHead(5, 3), ...cborStr('a'), ...cborUint(p.amount), ...cborStr('s'), ...cborStr(p.secret), ...cborStr('c'), ...cborBytes(fromHex(p.C)));
+    }
+  }
+  return 'cashuB' + b64url(new Uint8Array(out));
+}
+
+// WASM FFI Wrappers (zero secrets ever sent to server during blinding!)
+function wasmWrite(u8) {
+  const ptr = wasm.wasm_alloc(u8.length);
+  new Uint8Array(wasm.memory.buffer, ptr, u8.length).set(u8);
+  return ptr;
+}
+function wasmBlind(secretStr, seed32) {
+  const msg = new TextEncoder().encode(secretStr);
+  const mPtr = wasmWrite(msg), dPtr = wasmWrite(dstBytes), sPtr = wasmWrite(seed32), outPtr = wasm.wasm_alloc(48);
+  const ok = wasm.wasm_blind_message(mPtr, msg.length, dPtr, dstBytes.length, sPtr, outPtr);
+  const res = new Uint8Array(wasm.memory.buffer.slice(outPtr, outPtr + 48));
+  wasm.wasm_dealloc(mPtr, msg.length); wasm.wasm_dealloc(dPtr, dstBytes.length); wasm.wasm_dealloc(sPtr, 32); wasm.wasm_dealloc(outPtr, 48);
+  if (!ok) throw new Error('WASM blind failed');
+  return toHex(res);
+}
+function wasmUnblindAndVerify(cBlindHex, seed32, secretStr, pkG2Hex) {
+  const cb = fromHex(cBlindHex), msg = new TextEncoder().encode(secretStr), pk = fromHex(pkG2Hex);
+  const cbPtr = wasmWrite(cb), sPtr = wasmWrite(seed32), mPtr = wasmWrite(msg), dPtr = wasmWrite(dstBytes), pkPtr = wasmWrite(pk), outPtr = wasm.wasm_alloc(48);
+  const ok = wasm.wasm_unblind_and_verify(cbPtr, sPtr, mPtr, msg.length, dPtr, dstBytes.length, pkPtr, outPtr);
+  const res = new Uint8Array(wasm.memory.buffer.slice(outPtr, outPtr + 48));
+  wasm.wasm_dealloc(cbPtr, 48); wasm.wasm_dealloc(sPtr, 32); wasm.wasm_dealloc(mPtr, msg.length); wasm.wasm_dealloc(dPtr, dstBytes.length); wasm.wasm_dealloc(pkPtr, 96); wasm.wasm_dealloc(outPtr, 48);
+  if (!ok) throw new Error('Offline BLS12-381 pairing verification FAILED in browser WASM!');
+  return toHex(res);
+}
+function wasmHashToY(secretStr) {
+  const msg = new TextEncoder().encode(secretStr);
+  const mPtr = wasmWrite(msg), dPtr = wasmWrite(dstBytes), outPtr = wasm.wasm_alloc(48);
+  const ok = wasm.wasm_hash_to_y(mPtr, msg.length, dPtr, dstBytes.length, outPtr);
+  const res = new Uint8Array(wasm.memory.buffer.slice(outPtr, outPtr + 48));
+  wasm.wasm_dealloc(mPtr, msg.length); wasm.wasm_dealloc(dPtr, dstBytes.length); wasm.wasm_dealloc(outPtr, 48);
+  if (!ok) throw new Error('WASM hash_to_y failed');
+  return toHex(res);
+}
+
+async function init() {
+  const res = await WebAssembly.instantiateStreaming(fetch('/assets/cowrie_bls.wasm'), {});
+  wasm = res.instance.exports;
+  const keysResp = await (await fetch('/v1/keys')).json();
+  satKeyset = keysResp.keysets.find(k => k.unit === 'sat');
+  await refresh();
+  connectNut17WebSocket();
+  log(`Loaded cowrie_bls.wasm & NUT-01 G2 keyset ${satKeyset.id} — non-custodial NUT-13 deterministic wallet ready.`);
+}
+
+async function refresh() {
+  const st = await (await fetch('/demo/status')).json();
+  dstBytes = new TextEncoder().encode(st.dst_utf8);
+  const proofs = loadProofs().filter(p => p.id === st.sat_keyset_id);
+  saveProofs(proofs);
+  const bal = proofs.reduce((s, p) => s + p.amount, 0);
+
+  document.getElementById('ks-badge').textContent = `Keyset ${st.sat_keyset_id} · ${st.threshold}-of-${st.num_peers} BLS12-381`;
+  document.getElementById('w-bal').textContent = `${bal} sat`;
+  document.getElementById('w-cnt').textContent = `${proofs.length} notes`;
+  document.getElementById('m-res').textContent = `${st.vault_reserve_sats} sat`;
+  document.getElementById('v-buf').textContent = `${st.v4v_buffered_sats} sat (${st.v4v_buffered_notes} notes)`;
+  document.getElementById('v-set').textContent = `${st.v4v_settled_sats} sat`;
+  if (proofs.length > 0) {
+    document.getElementById('v4-box').textContent = encodeNut00V4Token(location.origin, 'sat', proofs);
+  }
+
+  const LH = { healthy: 'lit', offline: 'dark', byzantine_forge: 'false' };
+  const STATE = { healthy: 'Lit · signing', offline: 'Dark · offline', byzantine_forge: 'False light · forging' };
+  document.getElementById('peers-grid').innerHTML = st.guardians.map(g => `
+    <div class="peer ${g.mode}">
+      <img class="lh" src="/assets/site/lighthouse-${LH[g.mode] || 'lit'}.png" alt="">
+      <div class="peer-title">Guardian ${g.peer_id}</div>
+      <div class="peer-state">${STATE[g.mode] || g.mode}</div>
+      <div class="peer-meta">signed ${g.shares_accepted} · caught ${g.byzantine_shares_rejected}</div>
+      <div class="btn-group">
+        <button class="sm ${g.mode==='healthy'?'on-lit':''}" onclick="setMode(${g.peer_id},'healthy')">Lit</button>
+        <button class="sm ${g.mode==='offline'?'on-dark':''}" onclick="setMode(${g.peer_id},'offline')">Dark</button>
+        <button class="sm ${g.mode==='byzantine_forge'?'on-false':''}" onclick="setMode(${g.peer_id},'byzantine_forge')">False light</button>
+      </div>
+    </div>
+  `).join('');
+  const honest = st.guardians.filter(g => g.mode === 'healthy').length;
+  const q = document.getElementById('quorum');
+  const ok = honest >= st.threshold;
+  q.className = 'quorum ' + (ok ? 'ok' : 'halt');
+  q.textContent = ok
+    ? `${honest} of ${st.num_peers} lit · ${st.threshold} needed · notes get signed`
+    : `${honest} of ${st.num_peers} lit · ${st.threshold} needed · issuance halts safely`;
+}
+
+async function setMode(peer_id, mode) {
+  await fetch('/demo/guardian', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({peer_id, mode}) });
+  log(`Guardian #${peer_id} -> ${mode.toUpperCase()}`);
+  await refresh();
+}
+
+function splitDenoms(amount) {
+  if (amount <= 16) return Array(amount).fill(1);
+  const out = [];
+  for (let b = 30; b >= 0; b--) { const v = 1 << b; while (amount >= v) { out.push(v); amount -= v; } }
+  return out;
+}
+
+async function mintInBrowser(amount) {
+  const t0 = performance.now();
+  const qResp = await fetch('/v1/mint/quote/bolt11', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ amount, unit: 'sat', description: 'Browser WASM Mint' })
+  });
+  const quote = await qResp.json();
+  if (!qResp.ok) { log(`Quote error: ${quote.detail}`); return; }
+
+  const denoms = splitDenoms(amount);
+  const pending = [];
+  for (const amt of denoms) {
+    const d = await deriveNut13Browser(nextCounter());
+    pending.push({ amount: amt, ...d });
+  }
+
+  const mResp = await fetch('/v1/mint/bolt11', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      quote: quote.quote,
+      outputs: pending.map(p => ({ amount: p.amount, id: satKeyset.id, B_: p.B_ }))
+    })
+  });
+  const mData = await mResp.json();
+  if (!mResp.ok) { log(`Mint aborted by threshold/policy: ${mData.detail} (code ${mData.code})`); await refresh(); return; }
+
+  const newProofs = pending.map((p, i) => {
+    const C = wasmUnblindAndVerify(mData.signatures[i].C_, p.seed32, p.secret, satKeyset.keys[String(p.amount)]);
+    return { amount: p.amount, id: satKeyset.id, secret: p.secret, C };
+  });
+  saveProofs([...loadProofs(), ...newProofs]);
+  log(`Browser WASM blinded, minted ${amount} sat (${newProofs.length} notes), & pairing-verified offline in ${(performance.now() - t0).toFixed(1)} ms!`);
+  await refresh();
+}
+
+async function swapInBrowser() {
+  const all = loadProofs();
+  if (!all.length) { log('Browser wallet empty — mint sats first!'); return; }
+  const take = all.slice(0, 8), keep = all.slice(8);
+  const total = take.reduce((s, p) => s + p.amount, 0);
+  const denoms = total <= 32 ? Array(total).fill(1) : splitDenoms(total);
+
+  const t0 = performance.now();
+  const pending = [];
+  for (const amt of denoms) {
+    const d = await deriveNut13Browser(nextCounter());
+    pending.push({ amount: amt, ...d });
+  }
+
+  const r = await fetch('/v1/swap', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      inputs: take,
+      outputs: pending.map(p => ({ amount: p.amount, id: satKeyset.id, B_: p.B_ }))
+    })
+  });
+  const d = await r.json();
+  if (!r.ok) { log(`Swap rejected: ${d.detail} (code ${d.code})`); await refresh(); return; }
+
+  const fresh = pending.map((p, i) => ({
+    amount: p.amount, id: satKeyset.id, secret: p.secret,
+    C: wasmUnblindAndVerify(d.signatures[i].C_, p.seed32, p.secret, satKeyset.keys[String(p.amount)])
+  }));
+  saveProofs([...keep, ...fresh]);
+  log(`Browser WASM NUT-03 Swap: ${total} sat -> ${fresh.length} fresh pairing-verified notes in ${(performance.now() - t0).toFixed(1)} ms`);
+  await refresh();
+}
+
+async function checkStateInBrowser() {
+  const proofs = loadProofs();
+  if (!proofs.length) { log('No local proofs to check.'); return; }
+  const Ys = proofs.map(p => wasmHashToY(p.secret));
+  const r = await fetch('/v1/checkstate', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ Ys })
+  });
+  const d = await r.json();
+  const unspent = d.states.filter(s => s.state === 'UNSPENT').length;
+  log(`NUT-07 Privacy Check: Sent ${Ys.length} 48-byte Y points (0 secrets leaked) -> ${unspent}/${Ys.length} UNSPENT`);
+}
+
+async function wipeAndRestoreInBrowser() {
+  const t0 = performance.now();
+  saveProofs([]);
+  await refresh();
+  log('Wiped browser localStorage proofs (0 sat). Scanning NUT-13 deterministic seed via /v1/restore (NUT-09)...');
+
+  const scanCount = Math.max(parseInt(localStorage.getItem(CTR_KEY) || '0', 10) + 16, 64);
+  const candidates = [];
+  for (let ctr = 0; ctr < scanCount; ctr++) {
+    const d = await deriveNut13Browser(ctr);
+    candidates.push({ ctr, ...d });
+  }
+  const r = await fetch('/v1/restore', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ outputs: candidates.map(c => ({ amount: 1, id: satKeyset.id, B_: c.B_ })) })
+  });
+  const res = await r.json();
+  const byB = Object.fromEntries(candidates.map(c => [c.B_, c]));
+  const verified = [];
+  let maxCtr = 0;
+  for (let i = 0; i < res.outputs.length; i++) {
+    const out = res.outputs[i], sig = res.signatures[i];
+    const meta = byB[out.B_];
+    if (!meta) continue;
+    maxCtr = Math.max(maxCtr, meta.ctr + 1);
+    const C = wasmUnblindAndVerify(sig.C_, meta.seed32, meta.secret, satKeyset.keys[String(sig.amount)]);
+    verified.push({ amount: sig.amount, id: satKeyset.id, secret: meta.secret, C });
+  }
+  let unspent = [];
+  if (verified.length > 0) {
+    const Ys = verified.map(p => wasmHashToY(p.secret));
+    const cs = await (await fetch('/v1/checkstate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ Ys })
+    })).json();
+    unspent = verified.filter((_, idx) => cs.states[idx].state === 'UNSPENT');
+  }
+  localStorage.setItem(CTR_KEY, String(maxCtr));
+  saveProofs(unspent);
+  const sats = unspent.reduce((s, p) => s + p.amount, 0);
+  log(`NUT-13 + NUT-09 Restore Complete: Recovered ${sats} sat (${unspent.length} unspent notes) from seed in ${(performance.now() - t0).toFixed(1)} ms!`);
+  await refresh();
+}
+
+async function tick402() {
+  const proofs = loadProofs();
+  const idx = proofs.findIndex(p => p.amount === 1);
+  const pickIdx = idx >= 0 ? idx : (proofs.length ? 0 : -1);
+  if (pickIdx < 0) {
+    log('HTTP-402 stream paused: Browser localStorage out of sats!');
+    if (streamTimer) toggleStream();
+    return;
+  }
+  const [note] = proofs.splice(pickIdx, 1);
+  saveProofs(proofs);
+
+  const token = encodeNut00V4Token(location.origin, 'sat', [note]);
+  const r = await fetch('/demo/v4v/protected_resource', {
+    method: 'POST',
+    headers: { 'X-Cashu': token }
+  });
+  const d = await r.json();
+  if (!r.ok) {
+    saveProofs([note, ...loadProofs()]);
+    log(`HTTP-402 error: ${d.error}`);
+  } else {
+    document.getElementById('v4v-box').textContent = `X-Cashu (${d.xcashu_header_bytes}B binary V4 CBOR, 0B DLEQ) verified offline in ${d.offline_pairing_verify_us} µs:\n${token}`;
+    log(`HTTP-402 Sent from Browser: +${d.streamed_sats} sat verified offline in ${d.offline_pairing_verify_us} µs`);
+  }
+  await refresh();
+}
+
+function toggleStream() {
+  const btn = document.getElementById('stream-btn');
+  if (streamTimer) { clearInterval(streamTimer); streamTimer = null; btn.textContent = 'Stream 1 sat/s'; }
+  else { tick402(); streamTimer = setInterval(tick402, 1000); btn.textContent = 'Stop stream'; }
+}
+
+async function batchSettle() {
+  const r = await fetch('/demo/v4v/settle', { method:'POST' });
+  const d = await r.json();
+  if (!r.ok) log(`${d.error}`);
+  else log(`NUT-05 Batch Melt: Settled ${d.settled_notes} streamed notes (${d.settled_sats} sats) in 1 Fiat-Shamir batch pairing (${d.batch_pairing_ms.toFixed(2)} ms)!`);
+  await refresh();
+}
+
+init();
+</script>
+</body>
+</html>
