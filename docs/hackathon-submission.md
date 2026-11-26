@@ -12,7 +12,7 @@ Cowrie is a federated Cashu mint where a Move smart contract, not the guardians,
 ## Links
 - **Repository:** https://github.com/bitccoli/cowrie
 - **Live landing page & playground:** https://cowrie-cashu.fly.dev (playground: https://cowrie-cashu.fly.dev/playground)
-- **Demo video:** *(add the YouTube / Devpost link)*
+- **Demo video:** https://x.com/bitccoli/status/2126045660797706389
 - **Judge walkthrough:** [hackathon-walkthrough.md](hackathon-walkthrough.md)
 - **Pitch, comparison table & Q&A:** [pitch.md](pitch.md)
 - **Protocol spec notes (proposed NUT-BLS):** [federated-bls-spec-notes.md](federated-bls-spec-notes.md)

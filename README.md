@@ -11,7 +11,7 @@ Cowrie is an independent federated **Cashu** mint. A federation of guardians sig
 |---|---|
 | **Live site** | https://cowrie-cashu.fly.dev |
 | **Live playground** | https://cowrie-cashu.fly.dev/playground |
-| **Demo video** | *(link)* |
+| **Demo video** | https://x.com/bitccoli/status/2126045660797706389 |
 | **Pitch, comparison & Q&A** | [docs/pitch.md](docs/pitch.md) |
 | **3-minute walkthrough** | [docs/hackathon-walkthrough.md](docs/hackathon-walkthrough.md) |
 
