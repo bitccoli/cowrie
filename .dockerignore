@@ -1,0 +1,10 @@
+# Keep the Docker / Fly build context small
+target/
+**/target/
+**/build/
+demo-video/
+cowrie-data/
+devnet-keys/
+.git/
+.github/
+.DS_Store

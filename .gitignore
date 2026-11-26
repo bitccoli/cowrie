@@ -11,9 +11,7 @@
 *wallet*.json
 *.cbor
 *.cbor.tmp
-# Rendered video/audio exports
-demo-video/*.mp4
-demo-video/*.webm
-demo-video/*.wav
+# Demo video workspace (art, narration, renders) — kept out of the repo
+demo-video/
 
 .DS_Store
