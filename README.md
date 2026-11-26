@@ -1,89 +1,147 @@
-# 🐚 Cowrie — Independent Federated Cashu (`BLS12-381`) Mint
+# Cowrie
 
 [![CI](https://github.com/bitccoli/cowrie/actions/workflows/ci.yml/badge.svg)](https://github.com/bitccoli/cowrie/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Cowrie** is an independent clean-room Rust implementation of **Federated Cashu (`t-of-n` Threshold `BLS12-381`)**, featuring dealer-free 2-round Pedersen DKG, pluggable Consensus Boxes, and zero-`DLEQ` offline pairing verification for **Value4Value `HTTP-402` (`NUT-24` `X-Cashu`)** streaming micropayments.
+### Signed by a federation. Kept by a contract.
+
+Cowrie is an independent federated **Cashu** mint. A federation of guardians signs ecash with threshold BLS signatures, and a **Move smart contract on Sui** keeps the ledger and holds the reserves. Anyone can audit it, anyone can redeem, and only so much can leave each hour.
+
+| | |
+|---|---|
+| **Live site** | https://cowrie-cashu.fly.dev |
+| **Live playground** | https://cowrie-cashu.fly.dev/playground |
+| **Demo video** | *(link)* |
+| **Pitch, comparison & Q&A** | [docs/pitch.md](docs/pitch.md) |
+| **3-minute walkthrough** | [docs/hackathon-walkthrough.md](docs/hackathon-walkthrough.md) |
+
+Built for Nut November 2026. Unaudited hackathon code.
 
 ---
 
-## Highlights
+## The idea in 30 seconds
 
-- **4-of-5 Threshold `BLS12-381` (`min-sig`) Signing:** Survives offline guardians **and** actively detects/rejects forged shares from Byzantine guardians in real time via bilinear pairing checks (`e(S'_i, G2) == e(B_, PK_i)`).
-- **Zero-`DLEQ` Offline Verification + Batch Settlement (`NUT-24` `X-Cashu`):** Each signature is **48 bytes** (50% smaller than `secp256k1` `BDHKE + NUT-12 DLEQ`), verifies offline in **<1 ms**, and batch-settles 64+ streamed 1-sat notes in **2 pairings** using 128-bit Fiat-Shamir weights.
-- **Broad `NUT` Support:** `NUT-00` (compact binary V4 CBOR `cashuB...`), `NUT-01`, `NUT-02` (`02...` hex keyset IDs & `input_fee_ppk`), `NUT-03` (`/v1/swap`), `NUT-04`/`05`/`23` (two-step `bolt11` & `sui` quotes, `InstantBolt11Backend` + live **`LNbits`** backend), `NUT-06`, `NUT-07` (48-byte `Ys`), `NUT-09` (`/v1/restore`), `NUT-10`/`11` (`P2PK` + `SIG_ALL`), `NUT-13` (deterministic seed derivation & wallet restore), `NUT-14` (`HTLC`), `NUT-17` (`/v1/ws` real-time WebSocket subscriptions), and `NUT-24` (`HTTP-402`).
-- **Pluggable "Consensus Box" Architecture (`CashuConsensusBox`):** Runs 100% standalone on Bitcoin/Lightning with atomic CBOR disk persistence (`--data-dir`), or settles directly against on-chain Sui Move shared-object vaults (`cashu/move/cowrie_cashu` via `--sui-rpc` + `scripts/deploy-sui-localnet.sh`) with 120-bit Fiat-Shamir batch pairing checks and hourly melt circuit breakers.
-- **Non-Custodial Browser WASM Wallet & Guardian Chaos Playground:** Built directly into `cowried` at `http://127.0.0.1:3338/` (`cowrie_bls.wasm` + `localStorage` + `NUT-13` seed wipe/restore + live `NUT-17` WebSocket feed).
+1. **Today, every Cashu mint has a keeper.** One operator holds the key and the reserves. If they disappear, so do users' sats.
+2. **Federated Cashu shares the key** among guardians, so no one can sign alone. But the guardians still have to agree on which notes were spent and still hold the reserves.
+3. **Cowrie gives both jobs to a smart contract.** Guardians only sign. The contract records every spent note, holds the reserves in public, pays out any valid note by itself, and caps withdrawals per hour.
 
-See [docs/hackathon-walkthrough.md](docs/hackathon-walkthrough.md) for the 3-minute judge walkthrough & architecture diagram, and [docs/federated-bls-spec-notes.md](docs/federated-bls-spec-notes.md) for protocol specification notes on standardizing `BLS12-381` keysets in `cashubtc/nuts`.
+## How it works
 
----
+```mermaid
+flowchart LR
+    W["Wallet<br/>(browser WASM or CLI)"] -->|"Cashu API (NUTs)"| M["cowried<br/>mint coordinator"]
+    M -->|"1 · record deposit / swap,<br/>mark notes spent"| V["MintVault (Move, Sui)<br/>ledger + reserves + hourly cap"]
+    M -->|"2 · ask for signature shares"| G["5 guardians<br/>any 4 can sign"]
+    G -.->|"sign only tickets the<br/>contract has recorded"| V
+    W -->|"redeem any valid note"| V
+```
 
-## Measured Benchmarks (`cowrie-bench --release`)
+| Role | Who | Does |
+|---|---|---|
+| **Signing** | 5 guardians, 4-of-5 threshold BLS12-381, dealer-free key generation | Sign blinded notes. Every share is pairing-checked, so a forged share is caught. |
+| **Consensus** | `MintVault` Move contract | Records each spent note once (48-byte nullifiers), ordered by Sui. Guardians run no consensus. |
+| **Custody** | `MintVault` Move contract | Holds reserves on-chain, verifies BLS notes itself and pays them out, trips an hourly melt cap. |
 
-- **Client `hash_to_g1` + Blinding (`B_`):** `124.7 µs`
-- **`4-of-5` Sign + 4 Pairing Share Checks + Lagrange Combine + Unblind:** `5.98 ms`
-- **Single-Note Offline `NUT-24` Pairing Verify:** `1.21 ms`
+It works because **BLS signatures can be checked by anyone, including a smart contract**. A standard Cashu note (secp256k1) can only be checked by the mint that signed it.
 
-| Batch Size (Notes) | Cowrie `cashuB` V4 (0B DLEQ) | `secp256k1` + `NUT-12` DLEQ `cashuB` | Token Size Savings | Naive (`2N` Pairings) | Fiat-Shamir Batch (`2` Pairings) | Speedup |
-|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 234 B | 314 B | **25.5%** | 1.24 ms | **1.16 ms** | **1.1x** |
-| 16 | 2,714 B | 3,994 B | **32.0%** | 19.48 ms | **5.11 ms** | **3.8x** |
-| 64 | 10,652 B | 15,772 B | **32.5%** | 76.49 ms | **16.61 ms** | **4.6x** |
-| 256 | 42,397 B | 62,877 B | **32.6%** | 306.70 ms | **63.69 ms** | **4.8x** |
+The same `cowried` binary also runs **standalone on Lightning** (embedded engine + LNbits) without Sui.
 
----
+## What to try (about 3 minutes)
 
-## 30-Second Quickstart (Interactive Demo + CLI)
+Open the [playground](https://cowrie-cashu.fly.dev/playground). Guardians are drawn as lighthouses.
+
+1. **Mint 16 × 1 sat.** Your browser blinds the notes in WASM, the federation signs, and the browser checks each signature offline before saving it. Secrets never leave the browser.
+2. **Make a guardian lie:** click **False light** on Guardian 0, then mint again. Its forged share is caught (watch `caught` go up) and the other four still sign.
+3. **Take one more down:** click **Dark** on Guardian 1. Only 3 of 5 are honest, so issuance halts safely: no bad notes. Set it back to **Lit**.
+4. **Stream sats:** click **Stream 1 sat/s**. Each second the wallet pays 1 sat in an HTTP-402 `X-Cashu` header, verified offline. Then **Settle all in one batch**.
+5. **Wipe & restore seed:** the wallet deletes its notes and recovers them from its seed.
+
+> The playground is shared by everyone visiting. If a guardian is already dark or lying, set it back to **Lit**.
+
+## How it compares
+
+| | Single Cashu mint | Federated Cashu (typical) | **Cowrie** |
+|---|---|---|---|
+| Signing key | one operator | t-of-n guardians | 4-of-5 guardians |
+| Who records spends | operator's database | guardians run consensus | **Move contract** |
+| Where reserves sit | operator's Lightning node | the federation | **on-chain vault, public** |
+| Redemption | operator must agree | federation must agree | **contract pays any valid note** |
+| If key holders collude | everything lost | everything lost | **bounded by an hourly cap** |
+
+## Numbers (`cowrie-bench --release`)
+
+| | |
+|---|---|
+| Signature size | **48 B**, no DLEQ proof needed |
+| 256-note token vs secp256k1 + DLEQ | **42.4 KB vs 62.9 KB** (32.6% smaller) |
+| Verify one note offline | **1.21 ms** |
+| Verify 256 notes in a batch (2 pairings) | **63.7 ms** (vs 306.7 ms one by one) |
+| 4-of-5 sign + check every share + combine | **5.98 ms** |
+
+A single secp256k1 check is faster than one BLS pairing; BLS wins on size, public verifiability and threshold signing.
+
+## Run it locally
 
 ```bash
-# 1. Start the 4-of-5 Federated Cashu Mint + Live Web Playground on port 3338
+# mint + landing page + playground on http://127.0.0.1:3338 (playground at /playground)
 cargo run -p cowrie-cashu-mintd --bin cowried -- --bind 127.0.0.1:3338 --data-dir ./cowrie-data
-# -> Open http://127.0.0.1:3338 in your browser to inject Byzantine/Offline guardian faults
-#    and stream 1-sat/sec Value4Value HTTP-402 (X-Cashu) notes live!
 
-# 2. Or use the NUT-13 deterministic terminal Cashu wallet (cowrie-cli)
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- info
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- seed
+# terminal wallet
 cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- mint 64
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- checkstate
-TOKEN=$(cargo run -q -p cowrie-cashu-mintd --bin cowrie-cli -- send 16)
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- receive "$TOKEN"
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- restore
-cargo run -p cowrie-cashu-mintd --bin cowrie-cli -- melt 64 lnbc64sat1p_demo
 
-# 3. Connect to a live Mutinynet / Signet / Mainnet LNbits node
-cargo run -p cowrie-cashu-mintd --bin cowried -- \
-  --lnbits-url https://your-lnbits-host \
-  --lnbits-key YOUR_ADMIN_KEY
+# tests and benchmarks
+cargo test --workspace
+sui move test --path cashu/move/cowrie_cashu
+cargo run --release -p cowrie-cashu-mintd --bin cowrie-bench
+```
 
-# 4. Connect to a live Sui localnet / Testnet Move Consensus Box (`cowrie_cashu::mint_vault`)
+<details>
+<summary>More: Sui vault, Lightning, key generation, Fedimint shim</summary>
+
+```bash
+# settle against the Move vault on a Sui localnet / testnet
+./scripts/deploy-sui-localnet.sh
 cargo run -p cowrie-cashu-mintd --bin cowried -- \
   --sui-rpc http://127.0.0.1:9000 \
-  --blind-seal-package-id 0xYOUR_BLIND_SEAL_PKG \
-  --cowrie-package-id 0xYOUR_COWRIE_CASHU_PKG \
-  --vault-object-id 0xYOUR_MINT_VAULT_SHARED_OBJ \
-  --keyset-info-id 0xYOUR_KEYSET_INFO_IMMUTABLE_OBJ \
+  --blind-seal-package-id 0x... --cowrie-package-id 0x... \
+  --vault-object-id 0x... --keyset-info-id 0x... \
   --sui-private-key suiprivkey1...
 
-# 5. Run a 3-of-4 Virtual Fedimint Guardian cluster (`ws://127.0.0.1:8173..8176/ws` + Bech32 `fed11...` InviteCode)
-cargo run -p cowrie-fedimint-shim --bin cowrie-fedimintd -- --base-port 8173 --threshold 3 --peers 4
+# standalone on Lightning via LNbits
+cargo run -p cowrie-cashu-mintd --bin cowried -- --lnbits-url https://your-lnbits-host --lnbits-key YOUR_ADMIN_KEY
 
-# 6. Run a dealer-free 2-round Batched Pedersen DKG ceremony
+# dealer-free 2-round Pedersen key generation
 cargo run -p blind-seal-server -- pedersen-dkg \
   --keyset-id 02_cowrie_sat --unit sat --threshold 4 --peers 5 --slots 32 --out-dir ./devnet-keys
 
-# 7. Run the full Rust workspace + Sui Move VM test suites
-cargo test --workspace
+# experimental Fedimint guardian shim on the same signing core
+cargo run -p cowrie-fedimint-shim --bin cowrie-fedimintd -- --base-port 8173 --threshold 3 --peers 4
+
+# all Move packages
 sui move test --path blind-seal/move/blind_seal
-sui move test --path cashu/move/cowrie_cashu
 sui move test --path fedimint/move/cowrie_fedimint
 ```
+</details>
 
----
+## Where to look in the code
 
-## Repository Structure
+| Path | What's there |
+|---|---|
+| [`cashu/move/cowrie_cashu/sources/mint_vault.move`](cashu/move/cowrie_cashu/sources/mint_vault.move) | **The vault:** spent-note table, reserves, on-chain BLS batch verification, hourly melt cap |
+| [`blind-seal/move/blind_seal/sources/blind_seal.move`](blind-seal/move/blind_seal/sources/blind_seal.move) | Keysets and the signing tickets guardians check |
+| [`blind-seal/crates/`](blind-seal/crates) | Threshold BLS12-381 signing, Pedersen DKG, guardian server, Sui client |
+| [`cashu/crates/cowrie-cashu-mintd/src/lib.rs`](cashu/crates/cowrie-cashu-mintd/src/lib.rs) | The `cowried` mint and Cashu NUT API |
+| [`cashu/crates/cowrie-cashu-mintd/assets/`](cashu/crates/cowrie-cashu-mintd/assets) | Landing page, playground and browser WASM |
+| [`blind-seal/wasm/cowrie-bls-wasm/`](blind-seal/wasm/cowrie-bls-wasm) | Browser blinding and offline pairing checks |
+| [`docs/federated-bls-spec-notes.md`](docs/federated-bls-spec-notes.md) | Pitfalls found building independently, proposed BLS keyset standard |
 
-- **`blind-seal/`** — Shared threshold `BLS12-381` signing, Pedersen DKG, ElGamal transport, IBE/`TPE`, and Sui Move policy primitives (`blind_seal.move`).
-- **`cashu/`** — Cowrie Federated Cashu mint (`cowried`), `cowrie-cli` wallet, interactive V4V dashboard, `LNbits` adapter, and `cowrie_cashu` Move Consensus Box.
-- **`fedimint/`** — Experimental downstream-compatible Fedimint Virtual Guardian shim (`OOBNotes`, `SessionOutcome` seed recovery, and `LNv2` `TPE` settlement).
+**Cashu NUTs supported:** 00 (V4 `cashuB`), 01–07, 09–14, 17 (WebSocket), 23 (`bolt11` + `sui`), 24 (HTTP-402).
+
+## Honest limits
+
+- Unaudited hackathon code.
+- Current Cashu wallets only support secp256k1 keysets, so Cowrie ships its own browser and CLI wallets.
+- In Sui mode, swaps and melts are public transactions. Issuance stays blinded, so deposits can't be linked to spends.
+- Colluding guardians (4 of 5) could still sign unbacked notes; the hourly cap bounds the damage and every melt is visible on-chain.
+
+MIT licensed.
