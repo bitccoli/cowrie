@@ -1,5 +1,8 @@
 # 🐚 Cowrie — Independent Federated Cashu (`BLS12-381`) Mint
 
+[![CI](https://github.com/bitccoli/cowrie/actions/workflows/ci.yml/badge.svg)](https://github.com/bitccoli/cowrie/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Cowrie** is an independent clean-room Rust implementation of **Federated Cashu (`t-of-n` Threshold `BLS12-381`)**, featuring dealer-free 2-round Pedersen DKG, pluggable Consensus Boxes, and zero-`DLEQ` offline pairing verification for **Value4Value `HTTP-402` (`NUT-24` `X-Cashu`)** streaming micropayments.
 
 ---

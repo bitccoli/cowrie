@@ -1,0 +1,37 @@
+# Fly.io deployment configuration for Cowrie (4-of-5 Federated Cashu Mint + Non-Custodial WASM Playground)
+# Deploy with:
+#   fly launch --no-deploy --copy-config
+#   fly volumes create cowrie_data --size 1 --region sin
+#   fly deploy
+
+app = "cowrie-ecash"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RUST_LOG = "info"
+
+[mounts]
+  source = "cowrie_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3338
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/v1/info"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

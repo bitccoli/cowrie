@@ -1,59 +1,11 @@
+# Zero-prep Docker Compose stack for Cowrie:
+#   - Default (`docker compose up --build`): runs `cowried` with embedded 4-of-5 BLS12-381 guardians
+#     + non-custodial browser WASM playground on http://127.0.0.1:3338
+#   - Distributed multi-host guardian profile (`docker compose --profile distributed up --build`):
+#     runs a dealer-free 2-round Pedersen DKG init container + 5 independent `blind-seal-server`
+#     guardian containers + `cowried` coordinator.
+
 services:
-  guardian-0:
-    build: .
-    command: >
-      blind-seal-server serve
-      --bind 0.0.0.0:3100
-      --sui-rpc http://sui-localnet:9000
-      --public-keyset /keys/sat_public.json
-      --secret-share /keys/sat_guardian_0.json
-    volumes:
-      - ./devnet-keys:/keys:ro
-
-  guardian-1:
-    build: .
-    command: >
-      blind-seal-server serve
-      --bind 0.0.0.0:3100
-      --sui-rpc http://sui-localnet:9000
-      --public-keyset /keys/sat_public.json
-      --secret-share /keys/sat_guardian_1.json
-    volumes:
-      - ./devnet-keys:/keys:ro
-
-  guardian-2:
-    build: .
-    command: >
-      blind-seal-server serve
-      --bind 0.0.0.0:3100
-      --sui-rpc http://sui-localnet:9000
-      --public-keyset /keys/sat_public.json
-      --secret-share /keys/sat_guardian_2.json
-    volumes:
-      - ./devnet-keys:/keys:ro
-
-  guardian-3:
-    build: .
-    command: >
-      blind-seal-server serve
-      --bind 0.0.0.0:3100
-      --sui-rpc http://sui-localnet:9000
-      --public-keyset /keys/sat_public.json
-      --secret-share /keys/sat_guardian_3.json
-    volumes:
-      - ./devnet-keys:/keys:ro
-
-  guardian-4:
-    build: .
-    command: >
-      blind-seal-server serve
-      --bind 0.0.0.0:3100
-      --sui-rpc http://sui-localnet:9000
-      --public-keyset /keys/sat_public.json
-      --secret-share /keys/sat_guardian_4.json
-    volumes:
-      - ./devnet-keys:/keys:ro
-
   cowried:
     build: .
     ports:
@@ -64,9 +16,112 @@ services:
       --threshold 4
       --peers 5
       --data-dir /data
-      --seal-urls http://guardian-0:3100,http://guardian-1:3100,http://guardian-2:3100,http://guardian-3:3100,http://guardian-4:3100
     volumes:
       - cowrie-data:/data
+
+  dkg-init:
+    profiles: ["distributed"]
+    build: .
+    command: >
+      blind-seal-server pedersen-dkg
+      --keyset-id 02cowriedemo0001
+      --unit sat
+      --threshold 4
+      --peers 5
+      --slots 32
+      --out-dir /keys
+    volumes:
+      - dkg-keys:/keys
+
+  guardian-0:
+    profiles: ["distributed"]
+    build: .
+    depends_on:
+      dkg-init:
+        condition: service_completed_successfully
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --peer-id 0
+      --public-keyset /keys/public_keyset.json
+      --secret-share /keys/guardian_0.json
+    volumes:
+      - dkg-keys:/keys:ro
+
+  guardian-1:
+    profiles: ["distributed"]
+    build: .
+    depends_on:
+      dkg-init:
+        condition: service_completed_successfully
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --peer-id 1
+      --public-keyset /keys/public_keyset.json
+      --secret-share /keys/guardian_1.json
+    volumes:
+      - dkg-keys:/keys:ro
+
+  guardian-2:
+    profiles: ["distributed"]
+    build: .
+    depends_on:
+      dkg-init:
+        condition: service_completed_successfully
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --peer-id 2
+      --public-keyset /keys/public_keyset.json
+      --secret-share /keys/guardian_2.json
+    volumes:
+      - dkg-keys:/keys:ro
+
+  guardian-3:
+    profiles: ["distributed"]
+    build: .
+    depends_on:
+      dkg-init:
+        condition: service_completed_successfully
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --peer-id 3
+      --public-keyset /keys/public_keyset.json
+      --secret-share /keys/guardian_3.json
+    volumes:
+      - dkg-keys:/keys:ro
+
+  guardian-4:
+    profiles: ["distributed"]
+    build: .
+    depends_on:
+      dkg-init:
+        condition: service_completed_successfully
+    command: >
+      blind-seal-server serve
+      --bind 0.0.0.0:3100
+      --peer-id 4
+      --public-keyset /keys/public_keyset.json
+      --secret-share /keys/guardian_4.json
+    volumes:
+      - dkg-keys:/keys:ro
+
+  cowried-distributed:
+    profiles: ["distributed"]
+    build: .
+    ports:
+      - "3339:3338"
+    command: >
+      cowried
+      --bind 0.0.0.0:3338
+      --threshold 4
+      --peers 5
+      --data-dir /data
+      --seal-urls http://guardian-0:3100,http://guardian-1:3100,http://guardian-2:3100,http://guardian-3:3100,http://guardian-4:3100
+    volumes:
+      - cowrie-data-dist:/data
     depends_on:
       - guardian-0
       - guardian-1
@@ -76,3 +131,5 @@ services:
 
 volumes:
   cowrie-data:
+  cowrie-data-dist:
+  dkg-keys:
